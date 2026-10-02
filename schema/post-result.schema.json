@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Bilal140202/igagent/schema/post-result.schema.json",
+  "title": "igagent post_manifest envelope",
+  "description": "The full output contract of one igagent run (schema_version 1.0). Every top-level key is always present; explicit nullability is the law — null means 'the public surface did not expose this', never 'we lost it'.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source",
+    "request",
+    "status",
+    "post",
+    "errors",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "source": {
+      "type": "object",
+      "required": ["tool", "version", "generated_at"],
+      "properties": {
+        "tool": { "const": "igagent" },
+        "version": { "type": "string" },
+        "generated_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": ["input", "shortcode", "canonical_url", "options"],
+      "properties": {
+        "input": { "type": "string", "description": "verbatim user input" },
+        "shortcode": { "type": ["string", "null"] },
+        "canonical_url": { "type": ["string", "null"] },
+        "options": {
+          "type": "object",
+          "required": ["download_media"],
+          "properties": {
+            "download_media": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": ["ok", "partial", "empty"],
+      "description": "ok = decoded and no run-level errors; partial = decoded but errors[] is non-empty; empty = nothing decoded."
+    },
+    "post": {
+      "type": ["object", "null"],
+      "required": [
+        "shortcode", "media_id", "url", "kind", "type", "caption",
+        "created_at", "like_count", "comment_count", "author",
+        "extraction_source", "media", "carousel"
+      ],
+      "properties": {
+        "shortcode": { "type": ["string", "null"] },
+        "media_id": { "type": ["string", "null"], "pattern": "^[0-9]+$" },
+        "url": { "type": ["string", "null"] },
+        "kind": { "type": ["string", "null"], "enum": ["post", "reel", "tv", null] },
+        "type": { "type": ["string", "null"], "enum": ["image", "video", "carousel", null] },
+        "caption": { "type": ["string", "null"] },
+        "created_at": { "type": ["string", "null"], "format": "date-time" },
+        "like_count": { "type": ["integer", "null"] },
+        "comment_count": { "type": ["integer", "null"] },
+        "author": {
+          "type": "object",
+          "required": ["username", "full_name", "avatar_url", "verified", "user_id", "followers"],
+          "properties": {
+            "username": { "type": ["string", "null"] },
+            "full_name": { "type": ["string", "null"] },
+            "avatar_url": { "type": ["string", "null"] },
+            "verified": { "type": ["boolean", "null"] },
+            "user_id": { "type": ["string", "null"] },
+            "followers": { "type": ["integer", "null"] }
+          }
+        },
+        "extraction_source": {
+          "enum": ["embed_json", "embed_html", "og_meta", null],
+          "description": "Which decode slot produced this post — provenance is not optional."
+        },
+        "media": {
+          "type": "object",
+          "required": ["images", "videos"],
+          "properties": {
+            "images": { "type": "array", "items": { "$ref": "#/definitions/image" } },
+            "videos": { "type": "array", "items": { "$ref": "#/definitions/video" } }
+          }
+        },
+        "carousel": {
+          "type": "object",
+          "required": ["known", "child_count"],
+          "properties": {
+            "known": { "type": "boolean", "description": "true only when carousel membership came from the payload itself (embed_json slot), never inferred." },
+            "child_count": { "type": ["integer", "null"] }
+          }
+        }
+      }
+    },
+    "errors": { "type": "array", "items": { "$ref": "#/definitions/error" } },
+    "metadata": {
+      "type": "object",
+      "required": ["duration_sec", "decode_slots_tried", "counts"],
+      "properties": {
+        "duration_sec": { "type": "number" },
+        "decode_slots_tried": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["slot", "outcome"],
+            "properties": {
+              "slot": { "type": "string" },
+              "outcome": { "type": "string" }
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "required": ["images", "videos", "downloaded_media", "failed_downloads"],
+          "properties": {
+            "images": { "type": "integer" },
+            "videos": { "type": "integer" },
+            "downloaded_media": { "type": "integer" },
+            "failed_downloads": { "type": "integer" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "image": {
+      "type": "object",
+      "required": ["url", "alt", "width", "height", "child_index", "file", "downloaded", "downloadable", "reason"],
+      "properties": {
+        "url": { "type": ["string", "null"] },
+        "alt": { "type": ["string", "null"] },
+        "width": { "type": ["integer", "null"] },
+        "height": { "type": ["integer", "null"] },
+        "child_index": { "type": ["integer", "null"], "description": "1-based position inside a known carousel; null otherwise." },
+        "file": { "type": ["string", "null"] },
+        "downloaded": { "type": "boolean" },
+        "downloadable": { "type": "boolean" },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "video": {
+      "type": "object",
+      "required": ["url", "poster_url", "width", "height", "duration", "child_index", "file", "poster_file", "downloaded", "downloadable", "reason"],
+      "properties": {
+        "url": { "type": ["string", "null"] },
+        "poster_url": { "type": ["string", "null"] },
+        "width": { "type": ["integer", "null"] },
+        "height": { "type": ["integer", "null"] },
+        "duration": { "type": ["number", "null"] },
+        "child_index": { "type": ["integer", "null"] },
+        "file": { "type": ["string", "null"] },
+        "poster_file": { "type": ["string", "null"] },
+        "downloaded": { "type": "boolean" },
+        "downloadable": { "type": "boolean" },
+        "reason": { "type": ["string", "null"], "description": "no_video_url_exposed | download_failed | url_outside_delivery_allowlist | null" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["stage", "code", "message", "subject"],
+      "properties": {
+        "stage": { "enum": ["discovery", "decoder", "fetcher", "orchestrator"] },
+        "code": {
+          "enum": [
+            "E_INVALID_INPUT", "E_SHARE_EXPAND_FAILED", "E_POST_UNAVAILABLE",
+            "E_DECODE_FAILED", "E_DOWNLOAD_FAILED", "E_MANIFEST_WRITE_FAILED"
+          ]
+        },
+        "message": { "type": "string" },
+        "subject": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
